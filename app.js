@@ -38,10 +38,10 @@ async function search(q,target,status){
     tracks=(data.results||[]).map(x=>({
       id:String(x.id),title:x.name||'Canción sin título',artist:x.artist_name||'Artista independiente',
       album:x.album_name||'Sencillo',cover:x.album_image||x.image||'',duration:Number(x.duration)||0,
-      audioUrl:`https://api.jamendo.com/v3.0/tracks/file/?client_id=${JAMENDO_CLIENT_ID}&id=${encodeURIComponent(x.id)}&action=stream&audioformat=mp32`,
+      audioUrl:x.audio||'',
       license:x.license_ccurl||'',provider:'Jamendo'
     }));
-    $(status).textContent=tracks.length?`Encontramos ${tracks.length} canciones de Jamendo. Selecciona una para ver su portada y escucharla aquí.`:'No encontramos canciones con ese nombre.';
+    $(status).textContent=tracks.length?`Encontramos ${tracks.length} canciones de Jamendo. Pulsa ▶ para reproducirlas aquí.`:'No encontramos canciones con ese nombre.';
     renderTracks(tracks,target);
   }catch(error){
     console.error(error);
@@ -77,6 +77,7 @@ audio.ontimeupdate=()=>{$('seek').value=audio.currentTime;$('currentTime').textC
 audio.onpause=()=>{$('playBtn').textContent='▶'};
 audio.onplay=()=>{$('playBtn').textContent='Ⅱ'};
 audio.onended=()=>$('nextBtn').click();
+audio.onerror=()=>{toast('Jamendo no pudo entregar el audio de esta pista. Prueba otra canción.');$('playBtn').textContent='▶'};
 audio.onloadedmetadata=()=>{$('seek').max=audio.duration||30;$('duration').textContent=fmt(audio.duration||30)};
 $('seek').oninput=e=>{if(audio.duration)audio.currentTime=Number(e.target.value)};
 $('volumeBtn').onclick=()=>{audio.muted=!audio.muted;$('volumeBtn').textContent=audio.muted?'◌':'♪'};
