@@ -204,9 +204,3 @@ body.light .beta-notice{background:linear-gradient(110deg,#f0e6fb,#fff4f8)}
  .hero-art{right:4%;width:190px;height:190px}
  .hero h1{font-size:58px}
 }
-
-/* YouTube official embedded player */
-.youtube-embed{display:block;width:200px;height:200px;min-height:200px;aspect-ratio:1/1;border:0;border-radius:18px;background:#000;margin:0 auto 18px}
-.youtube-embed.hidden{display:none}
-#youtubeApiKey{max-width:100%;width:min(100%,420px);padding:12px;border-radius:12px;border:1px solid var(--line,rgba(255,255,255,.15));background:var(--surface,rgba(255,255,255,.06));color:inherit}
-@media(max-width:600px){.youtube-embed{width:200px;height:200px;min-height:200px;border-radius:14px}}
