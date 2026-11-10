@@ -30,7 +30,7 @@ async function search(q,target,status){
   $(status).textContent='Buscando en el catálogo de Jamendo…';
   $(target).innerHTML='';
   try{
-    const params=new URLSearchParams({client_id:JAMENDO_CLIENT_ID,format:'json',limit:'30',namesearch:q.trim(),type:'single albumtrack',include:'licenses',audioformat:'mp32',imagesize:'300'});
+    const params=new URLSearchParams({client_id:JAMENDO_CLIENT_ID,format:'json',limit:'30',search:q.trim(),boost:'popularity_total',groupby:'artist_id',type:'single albumtrack',include:'licenses',audioformat:'mp32',imagesize:'300'});
     const response=await fetch(`https://api.jamendo.com/v3.0/tracks/?${params.toString()}`);
     if(!response.ok)throw Error('Jamendo API');
     const data=await response.json();
