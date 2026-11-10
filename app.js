@@ -13,7 +13,15 @@ $('dynamicColor').checked=dynamic;
 $('darkMode').onchange=e=>{document.body.classList.toggle('light',!e.target.checked);localStorage.setItem('ros-light',String(!e.target.checked))};
 $('dynamicColor').onchange=e=>{dynamic=e.target.checked;localStorage.setItem('ros-dynamic',String(dynamic));if(index>=0)applyCoverColor(queue[index].cover)};
 function escapeHtml(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function renderTracks(list,target){const el=$(target);if(!list.length){el.innerHTML='<div class="empty">No encontramos canciones para mostrar.</div>';return}el.classList.remove('empty');el.innerHTML=list.map((t,i)=>`<div class="track"><img src="${escapeHtml(t.cover)}" alt="Portada de ${escapeHtml(t.album||t.title)}" loading="lazy"><div class="track-text" data-detail="${i}" role="button" tabindex="0"><b>${escapeHtml(t.title)}</b><small>${escapeHtml(t.artist)} · ${escapeHtml(t.album||'')}</small></div><button class="track-play" data-detail="${i}" title="Ver canción" aria-label="Ver canción">▶</button><button data-fav="${t.id}" title="Guardar en favoritos" aria-label="Guardar en favoritos">${favorites.some(f=>f.id===t.id)?'♥':'♡'}</button></div>`).join('');el.querySelectorAll('[data-detail]').forEach(b=>{const open=()=>openDetail(list[Number(b.dataset.detail)]);b.onclick=open;b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}}});el.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>toggleFavorite(list.find(t=>String(t.id)===b.dataset.fav)))}
+function renderTracks(list,target){
+  const el=$(target);
+  if(!list.length){el.innerHTML='<div class="empty">No encontramos canciones para mostrar.</div>';return}
+  el.classList.remove('empty');
+  el.innerHTML=list.map((t,i)=>`<div class="track"><img src="${escapeHtml(t.cover)}" alt="Portada de ${escapeHtml(t.album||t.title)}" loading="lazy"><div class="track-text" data-detail="${i}" role="button" tabindex="0"><b>${escapeHtml(t.title)}</b><small>${escapeHtml(t.artist)} · ${escapeHtml(t.album||'')}</small></div><button class="track-play" data-play="${i}" title="Reproducir" aria-label="Reproducir">▶</button><button data-fav="${t.id}" title="Guardar en favoritos" aria-label="Guardar en favoritos">${favorites.some(f=>f.id===t.id)?'♥':'♡'}</button></div>`).join('');
+  el.querySelectorAll('[data-detail]').forEach(b=>{const open=()=>openDetail(list[Number(b.dataset.detail)]);b.onclick=open;b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}}});
+  el.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playList(list,Number(b.dataset.play)));
+  el.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>toggleFavorite(list.find(t=>String(t.id)===b.dataset.fav)));
+}
 function toggleFavorite(t){if(!t)return;const exists=favorites.some(f=>f.id===t.id);favorites=exists?favorites.filter(f=>f.id!==t.id):[...favorites,t];localStorage.setItem('ros-favorites',JSON.stringify(favorites));renderTracks(tracks,'results');renderTracks(tracks,'results2');renderFavorites();toast(exists?'Quitada de favoritos':'Añadida a favoritos')}
 function renderFavorites(){renderTracks(favorites,'favoriteList');renderTracks(favorites.slice(0,4),'homeFavorites')}
 const JAMENDO_CLIENT_ID='ee51e90a';
@@ -30,7 +38,7 @@ async function search(q,target,status){
     tracks=(data.results||[]).map(x=>({
       id:String(x.id),title:x.name||'Canción sin título',artist:x.artist_name||'Artista independiente',
       album:x.album_name||'Sencillo',cover:x.album_image||x.image||'',duration:Number(x.duration)||0,
-      audioUrl:x.audio||`https://api.jamendo.com/v3.0/tracks/file/?client_id=${JAMENDO_CLIENT_ID}&id=${encodeURIComponent(x.id)}&action=stream&audioformat=mp32`,
+      audioUrl:`https://api.jamendo.com/v3.0/tracks/file/?client_id=${JAMENDO_CLIENT_ID}&id=${encodeURIComponent(x.id)}&action=stream&audioformat=mp32`,
       license:x.license_ccurl||'',provider:'Jamendo'
     }));
     $(status).textContent=tracks.length?`Encontramos ${tracks.length} canciones de Jamendo. Selecciona una para ver su portada y escucharla aquí.`:'No encontramos canciones con ese nombre.';
