@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101014">
+<meta name="description" content="RosMusic — tu música, tu espacio. Descubre canciones y crea tu universo musical.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>RosMusic</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#"><span class="brand-mark">♪</span><span>RosMusic</span></a>
+    <p class="nav-label">MENÚ</p>
+    <button class="nav active" data-view="home">⌂ <span>Inicio</span></button>
+    <button class="nav" data-view="search">⌕ <span>Buscar música</span></button>
+    <button class="nav" data-view="favorites">♡ <span>Favoritos</span></button>
+    <div class="side-bottom"><div class="mini-note">Tu música.<br><b>Tu universo.</b></div><span class="muted">RosMusic Web · 0.2</span></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><button class="mobile-brand" data-view="home">♪ RosMusic</button><div class="top-actions"><button id="installBtn" class="install-btn hidden">Instalar</button><button id="themeToggle" class="icon-btn" title="Cambiar apariencia" aria-label="Cambiar apariencia">◐</button><button id="settingsBtn" class="profile">⚙ <span>Ajustes</span></button></div></header>
+    <section id="homeView" class="view">
+      <div class="hero"><div class="hero-copy"><span class="eyebrow">TU ESPACIO MUSICAL</span><h1>La música<br><em>se siente.</em></h1><p>Encuentra canciones, descubre sonidos y crea tu propio ambiente.</p><button class="primary" id="heroSearch">Explorar música <span>→</span></button></div><div class="hero-art"><span>PLAY<br>YOUR<br>WORLD</span></div></div>
+      <div class="section-head"><div><span class="eyebrow">DESCUBRE</span><h2>Busca tu próxima canción</h2></div></div>
+      <form id="searchForm" class="searchbar"><span>⌕</span><input id="searchInput" placeholder="¿Qué quieres escuchar?" autocomplete="off"><button>Buscar</button></form>
+      <div id="status" class="status">Prueba con el nombre de un artista o una canción.</div>
+      <div id="results" class="tracks"></div>
+      <div id="favoritesBlock"><div class="section-head"><div><span class="eyebrow">TU COLECCIÓN</span><h2>Guardadas para ti</h2></div></div><div id="homeFavorites" class="tracks empty">Tus canciones favoritas aparecerán aquí.</div></div>
+    </section>
+    <section id="searchView" class="view hidden"><span class="eyebrow">EXPLORAR</span><h1 class="page-title">¿Qué quieres escuchar?</h1><form id="searchForm2" class="searchbar"><span>⌕</span><input id="searchInput2" placeholder="Artista, canción o álbum" autocomplete="off"><button>Buscar</button></form><div id="status2" class="status">Busca música para empezar.</div><div id="results2" class="tracks"></div></section>
+    <section id="favoritesView" class="view hidden"><span class="eyebrow">TU COLECCIÓN</span><h1 class="page-title">Tus favoritos</h1><div id="favoriteList" class="tracks empty">Todavía no has guardado canciones.</div></section>
+    <section id="settingsView" class="view hidden"><span class="eyebrow">PERSONALIZA</span><h1 class="page-title">Ajustes</h1><div class="settings-card"><h3>Apariencia</h3><p>RosMusic adapta el ambiente al color de la portada que estás escuchando.</p><label class="setting-row">Color dinámico de portada <input id="dynamicColor" type="checkbox" checked></label><label class="setting-row">Modo oscuro <input id="darkMode" type="checkbox" checked></label><p class="muted small">Tus preferencias y favoritos se guardan en este dispositivo.</p></div><div class="settings-card"><h3>Instalación en Android</h3><p>Puedes instalar RosMusic desde el menú de tu navegador cuando esté disponible. La versión web no necesita Expo ni APK.</p></div><div class="settings-card"><h3>Sobre RosMusic</h3><p>Versión web independiente. La búsqueda usa la API pública de Deezer y reproduce las muestras de audio disponibles (normalmente fragmentos de 30 segundos). El catálogo completo requiere una integración autorizada con un proveedor musical.</p></div></section>
+  </main>
+</div>
+<nav class="mobile-nav" aria-label="Navegación principal">
+  <button class="nav active" data-view="home"><span class="mobile-nav-icon">⌂</span><span>Inicio</span></button>
+  <button class="nav" data-view="search"><span class="mobile-nav-icon">⌕</span><span>Buscar</span></button>
+  <button class="nav" data-view="favorites"><span class="mobile-nav-icon">♡</span><span>Favoritos</span></button>
+</nav>
+<footer class="player" id="player"><img id="nowCover" src="" alt=""><div class="now-meta"><b id="nowTitle">Elige una canción</b><span id="nowArtist">RosMusic</span></div><div class="controls"><button id="prevBtn" title="Anterior" aria-label="Anterior">|◀</button><button id="playBtn" class="play" title="Reproducir" aria-label="Reproducir">▶</button><button id="nextBtn" title="Siguiente" aria-label="Siguiente">▶|</button></div><div class="progress-wrap"><span id="currentTime">0:00</span><input id="seek" type="range" min="0" max="30" value="0" aria-label="Progreso"><span id="duration">0:30</span></div><button id="volumeBtn" class="icon-btn" title="Volumen" aria-label="Silenciar o activar sonido">♪</button><audio id="audio" preload="none"></audio></footer>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body></html>
