@@ -12,7 +12,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>RosMusic</title>
-<link rel="stylesheet" href="styles.css?v=rosmusic15">
+<link rel="stylesheet" href="styles.css?v=rosmusic16">
 </head>
 <body>
 <div class="app-shell">
@@ -22,6 +22,7 @@
     <button class="nav active" data-view="home">⌂ <span>Inicio</span></button>
     <button class="nav" data-view="search">⌕ <span>Buscar música</span></button>
     <button class="nav" data-view="favorites">♡ <span>Favoritos</span></button>
+    <button class="nav" data-view="playlists">♫ <span>Playlists</span></button>
     <div class="side-bottom"><div class="mini-note">Tu música.<br><b>Tu universo.</b></div><span class="muted">RosMusic Web · 0.2</span></div>
   </aside>
   <main class="main">
@@ -37,6 +38,7 @@
     </section>
     <section id="searchView" class="view hidden"><span class="eyebrow">EXPLORAR</span><h1 class="page-title">¿Qué quieres escuchar?</h1><form id="searchForm2" class="searchbar"><span>⌕</span><input id="searchInput2" placeholder="Artista, canción o álbum" autocomplete="off"><button>Buscar</button></form><div id="status2" class="status">Busca música para empezar.</div><div id="results2" class="tracks"></div></section>
     <section id="favoritesView" class="view hidden"><span class="eyebrow">TU COLECCIÓN</span><h1 class="page-title">Tus favoritos</h1><div id="favoriteList" class="tracks empty">Todavía no has guardado canciones.</div></section>
+    <section id="playlistsView" class="view hidden"><span class="eyebrow">TU MÚSICA, A TU MANERA</span><h1 class="page-title">Tus playlists</h1><div class="settings-card"><h3>Crear playlist</h3><p>Las listas se guardan en tu cuenta y solo tú puedes verlas.</p><form id="playlistCreateForm" class="playlist-create"><input id="playlistName" class="account-input" maxlength="60" placeholder="Nombre de tu playlist" autocomplete="off"><button class="primary account-button" type="submit">Crear</button></form><label class="account-label" for="playlistSelect">Selecciona una playlist</label><select id="playlistSelect" class="playlist-select"><option value="">Inicia sesión para ver tus playlists</option></select><p class="muted small">En Buscar, pulsa ＋ junto a una canción para añadirla a la lista seleccionada.</p></div><div id="playlistTracks" class="tracks empty">Inicia sesión para ver tus playlists.</div></section>
     <section id="settingsView" class="view hidden"><span class="eyebrow">PERSONALIZA</span><h1 class="page-title">Ajustes</h1><div class="settings-card account-card">
 <h3>Tu cuenta RosMusic</h3>
 <p>Inicia sesión para sincronizar tus favoritos entre tus dispositivos.</p>
@@ -58,9 +60,10 @@
   <button class="nav active" data-view="home"><span class="mobile-nav-icon">⌂</span><span>Inicio</span></button>
   <button class="nav" data-view="search"><span class="mobile-nav-icon">⌕</span><span>Buscar</span></button>
   <button class="nav" data-view="favorites"><span class="mobile-nav-icon">♡</span><span>Favoritos</span></button>
+  <button class="nav" data-view="playlists"><span class="mobile-nav-icon">♫</span><span>Listas</span></button>
 </nav>
 <footer class="player" id="player"><img id="nowCover" src="" alt=""><div class="now-meta"><b id="nowTitle">Elige una canción</b><span id="nowArtist">RosMusic</span></div><div class="controls"><button id="prevBtn" title="Anterior" aria-label="Anterior">|◀</button><button id="playBtn" class="play" title="Reproducir" aria-label="Reproducir">▶</button><button id="nextBtn" title="Siguiente" aria-label="Siguiente">▶|</button></div><div class="progress-wrap"><span id="currentTime">0:00</span><input id="seek" type="range" min="0" max="30" value="0" aria-label="Progreso"><span id="duration">0:30</span></div><button id="volumeBtn" class="icon-btn" title="Volumen" aria-label="Silenciar o activar sonido">♪</button><audio id="audio" preload="none"></audio></footer>
 <section id="trackDetail" class="detail-overlay hidden" aria-label="Detalles de la canción"><button id="closeDetail" class="detail-close" aria-label="Cerrar">×</button><div class="detail-content"><img id="detailCover" class="detail-cover" src="" alt="Portada del álbum"><div class="detail-info"><span class="eyebrow">AHORA EN ROSMUSIC</span><h2 id="detailTitle"></h2><p id="detailArtist"></p><p id="detailAlbum" class="muted"></p><p id="detailLicense" class="embed-caption">Música independiente desde Jamendo.</p></div></div></div></section><div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=rosmusic15"></script>
+<script src="app.js?v=rosmusic16"></script>
 </body></html>
