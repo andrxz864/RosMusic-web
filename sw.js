@@ -1,4 +1,4 @@
-const CACHE='rosmusic-web-v11';
+const CACHE='rosmusic-web-v12';
 const CORE=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icon.svg'];
 
 self.addEventListener('install',event=>{
