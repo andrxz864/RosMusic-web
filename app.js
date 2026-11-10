@@ -1,8 +1,8 @@
 const $=id=>document.getElementById(id);
-const audio=$('audio');let tracks=[],queue=[],index=-1,favorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]'),dynamic=localStorage.getItem('ros-dynamic')!=='false',installPrompt=null;
+const audio=$('audio');let tracks=[],queue=[],index=-1,favorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]'),dynamic=localStorage.getItem('ros-dynamic')!=='false',installPrompt=null,youtubeApiKey=localStorage.getItem('ros-youtube-key')||'';
 const fmt=s=>{s=Math.floor(s||0);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2300)}
-function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(name+'View').classList.remove('hidden');document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='favorites')renderFavorites();window.scrollTo({top:0,behavior:'smooth'})}
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(name+'View').classList.remove('hidden');document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='favorites')const keyInput=$('youtubeApiKey');if(keyInput){keyInput.value=youtubeApiKey;keyInput.onchange=()=>{youtubeApiKey=keyInput.value.trim();localStorage.setItem('ros-youtube-key',youtubeApiKey);toast(youtubeApiKey?'YouTube conectado en este dispositivo':'Clave de YouTube eliminada');};}\nrenderFavorites();window.scrollTo({top:0,behavior:'smooth'})}
 document.querySelectorAll('.nav[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 $('settingsBtn').onclick=()=>showView('settings');
 $('heroSearch').onclick=()=>{showView('search');$('searchInput2').focus()};
@@ -27,26 +27,27 @@ function renderFavorites(){renderTracks(favorites,'favoriteList');renderTracks(f
 const JAMENDO_CLIENT_ID='ee51e90a';
 async function search(q,target,status){
   if(!q.trim())return;
-  $(status).textContent='Buscando canciones y artistas en Jamendo…';
+  $(status).textContent=youtubeApiKey?'Buscando en YouTube…':'Buscando en Jamendo…';
   $(target).innerHTML='';
   try{
-    const params=new URLSearchParams({client_id:JAMENDO_CLIENT_ID,format:'json',limit:'50',search:q.trim(),boost:'popularity_total',type:'single albumtrack',include:'licenses',audioformat:'mp32',imagesize:'300'});
-    const response=await fetch(`https://api.jamendo.com/v3.0/tracks/?${params.toString()}`);
-    if(!response.ok)throw Error('Jamendo API');
-    const data=await response.json();
-    if(data.headers?.status==='failed'||data.headers?.code!==0)throw Error(data.headers?.error_message||'Jamendo API');
-    tracks=(data.results||[]).map(x=>({
-      id:String(x.id),title:x.name||'Canción sin título',artist:x.artist_name||'Artista independiente',
-      album:x.album_name||'Sencillo',cover:x.album_image||x.image||'',duration:Number(x.duration)||0,
-      audioUrl:x.audio||'',
-      license:x.license_ccurl||'',provider:'Jamendo'
-    }));
-    $(status).textContent=tracks.length?`Encontramos ${tracks.length} resultados de Jamendo. Pulsa ▶ para reproducir una pista disponible aquí.`:'No encontramos resultados en Jamendo. Prueba otro término o artista independiente.';
+    if(youtubeApiKey){
+      const params=new URLSearchParams({part:'snippet',type:'video',maxResults:'25',q:q.trim(),videoCategoryId:'10',key:youtubeApiKey});
+      const response=await fetch(`https://www.googleapis.com/youtube/v3/search?${params.toString()}`);
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error?.message||'YouTube API');
+      tracks=(data.items||[]).filter(x=>x.id?.videoId).map(x=>({id:x.id.videoId,videoId:x.id.videoId,title:x.snippet?.title||'Video musical',artist:x.snippet?.channelTitle||'YouTube',album:'YouTube',cover:x.snippet?.thumbnails?.high?.url||x.snippet?.thumbnails?.medium?.url||'',duration:0,audioUrl:'',license:'Reproducción mediante el reproductor oficial de YouTube.',provider:'YouTube'}));
+      $(status).textContent=tracks.length?`Encontramos ${tracks.length} videos musicales en YouTube. Pulsa ▶ para reproducirlos aquí.`:'No encontramos resultados en YouTube. Prueba otro término.';
+    }else{
+      const params=new URLSearchParams({client_id:JAMENDO_CLIENT_ID,format:'json',limit:'50',search:q.trim(),boost:'popularity_total',type:'single albumtrack',include:'licenses',audioformat:'mp32',imagesize:'300'});
+      const response=await fetch(`https://api.jamendo.com/v3.0/tracks/?${params.toString()}`);
+      if(!response.ok)throw Error('Jamendo API');
+      const data=await response.json();
+      if(data.headers?.status==='failed'||data.headers?.code!==0)throw Error(data.headers?.error_message||'Jamendo API');
+      tracks=(data.results||[]).map(x=>({id:String(x.id),title:x.name||'Canción sin título',artist:x.artist_name||'Artista independiente',album:x.album_name||'Sencillo',cover:x.album_image||x.image||'',duration:Number(x.duration)||0,audioUrl:x.audio||'',license:x.license_ccurl||'',provider:'Jamendo'}));
+      $(status).textContent=tracks.length?`Encontramos ${tracks.length} resultados de Jamendo. Pulsa ▶ para reproducir una pista disponible aquí.`:'No encontramos resultados en Jamendo. Prueba otro término o artista independiente.';
+    }
     renderTracks(tracks,target);
-  }catch(error){
-    console.error(error);
-    $(status).textContent='No se pudo conectar con Jamendo. Comprueba tu conexión e inténtalo de nuevo.';
-  }
+  }catch(error){console.error(error);$(status).textContent='No se pudo completar la búsqueda: '+(error.message||'comprueba la conexión y la configuración de la API key.');}
 }
 $('searchForm').onsubmit=e=>{e.preventDefault();search($('searchInput').value,'results','status')};
 $('searchForm2').onsubmit=e=>{e.preventDefault();search($('searchInput2').value,'results2','status2')};
@@ -56,10 +57,10 @@ function openDetail(t){
   $('detailCover').src=t.cover;$('detailTitle').textContent=t.title;$('detailArtist').textContent=t.artist;$('detailAlbum').textContent=t.album||'Sencillo';
   const license=$('detailLicense');
   if(license)license.textContent=t.license?'Licencia Creative Commons. Revisa sus condiciones antes de reutilizar esta pista.':'Consulta las condiciones de uso de esta pista en Jamendo.';
-  $('trackDetail').classList.remove('hidden');document.body.style.overflow='hidden';queue=[t];index=0;
+  const yt=$('youtubeEmbed');if(yt){yt.classList.toggle('hidden',t.provider!=='YouTube');yt.src=t.provider==='YouTube'?`https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.videoId)}?autoplay=1&controls=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}`:'';}\n  $('trackDetail').classList.remove('hidden');document.body.style.overflow='hidden';queue=[t];index=0;
   $('nowTitle').textContent=t.title;$('nowArtist').textContent=t.artist;$('nowCover').src=t.cover;applyCoverColor(t.cover);
 }
-$('closeDetail').onclick=()=>{$('trackDetail').classList.add('hidden');document.body.style.overflow=''};
+$('closeDetail').onclick=()=>{$('trackDetail').classList.add('hidden');const yt=$('youtubeEmbed');if(yt)yt.src='';document.body.style.overflow=''};
 $('trackDetail').onclick=e=>{if(e.target===$('trackDetail'))$('closeDetail').click()};
 function playList(list,i){
   if(!list?.length)return;
