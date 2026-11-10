@@ -1,5 +1,100 @@
 const $=id=>document.getElementById(id);
 const audio=$('audio');let tracks=[],queue=[],index=-1,favorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]'),dynamic=localStorage.getItem('ros-dynamic')!=='false',installPrompt=null;
+
+const SUPABASE_URL='https://avcjvhrarhxsupdzcvjn.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_mbgKjSevp3xW4PndlaThaA__HCwLKkO';
+const supabaseClient=window.supabase?.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let currentUser=null;
+function favoriteStorageKey(){return currentUser?'ros-favorites-'+currentUser.id:'ros-favorites'}
+function saveFavorites(){localStorage.setItem(favoriteStorageKey(),JSON.stringify(favorites))}
+function accountMessage(message,isError=false){const el=$('accountMessage');if(el){el.textContent=message;el.classList.toggle('error',isError)}}
+function updateAccountUI(){
+  const status=$('accountStatus');
+  if(!status)return;
+  status.textContent=currentUser?'Sesión iniciada: '+currentUser.email:'No has iniciado sesión.';
+  $('signUpBtn').classList.toggle('hidden',!!currentUser);
+  $('signInBtn').classList.toggle('hidden',!!currentUser);
+  $('signOutBtn').classList.toggle('hidden',!currentUser);
+}
+async function syncFavoritesForUser(user){
+  const guestFavorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]');
+  const personalKey='ros-favorites-'+user.id;
+  const personalFavorites=JSON.parse(localStorage.getItem(personalKey)||'[]');
+  const localItems=[...guestFavorites,...personalFavorites];
+  const {data:existing,error:readError}=await supabaseClient.from('favorites').select('track_id').eq('user_id',user.id);
+  if(readError)throw readError;
+  const known=new Set((existing||[]).map(row=>String(row.track_id)));
+  const newRows=localItems.filter(t=>t&&t.id&&!known.has(String(t.id))).map(t=>({
+    user_id:user.id,track_id:String(t.id),title:t.title||'Canción',artist:t.artist||'Artista',
+    cover_url:t.cover||'',audio_url:t.audioUrl||''
+  }));
+  if(newRows.length){
+    const {error}=await supabaseClient.from('favorites').insert(newRows);
+    if(error)throw error;
+  }
+  const {data,error}=await supabaseClient.from('favorites').select('track_id,title,artist,cover_url,audio_url').eq('user_id',user.id).order('created_at',{ascending:false});
+  if(error)throw error;
+  favorites=(data||[]).map(row=>({
+    id:String(row.track_id),title:row.title,artist:row.artist,album:'Favoritos',
+    cover:row.cover_url||'',audioUrl:row.audio_url||'',provider:'Jamendo'
+  }));
+  localStorage.setItem(personalKey,JSON.stringify(favorites));
+  localStorage.removeItem('ros-favorites');
+  renderFavorites();
+}
+async function handleAuthSession(session){
+  currentUser=session?.user||null;
+  updateAccountUI();
+  if(currentUser){
+    try{await syncFavoritesForUser(currentUser);accountMessage('Tus favoritos están sincronizados en esta cuenta.');}
+    catch(error){console.error(error);accountMessage('La cuenta inició sesión, pero no se pudieron sincronizar los favoritos. Revisa la configuración de la tabla.',true);}
+  }else{
+    favorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]');
+    renderFavorites();
+  }
+  renderTracks(tracks,'results');renderTracks(tracks,'results2');
+}
+async function createAccount(){
+  if(!supabaseClient){accountMessage('No se pudo cargar el servicio de cuentas. Recarga la página.',true);return}
+  const email=$('accountEmail').value.trim(),password=$('accountPassword').value;
+  if(!email||!password){accountMessage('Escribe tu correo y una contraseña.',true);return}
+  if(password.length<6){accountMessage('La contraseña debe tener al menos 6 caracteres.',true);return}
+  $('signUpBtn').disabled=true;accountMessage('Creando tu cuenta…');
+  const {data,error}=await supabaseClient.auth.signUp({email,password});
+  $('signUpBtn').disabled=false;
+  if(error){accountMessage(error.message,true);return}
+  if(data.session){await handleAuthSession(data.session);accountMessage('¡Cuenta creada! Ya puedes usar RosMusic.');}
+  else{accountMessage('Cuenta creada. Revisa tu correo y confirma la dirección antes de iniciar sesión.');}
+}
+async function signIn(){
+  if(!supabaseClient){accountMessage('No se pudo cargar el servicio de cuentas. Recarga la página.',true);return}
+  const email=$('accountEmail').value.trim(),password=$('accountPassword').value;
+  if(!email||!password){accountMessage('Escribe tu correo y contraseña.',true);return}
+  $('signInBtn').disabled=true;accountMessage('Iniciando sesión…');
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+  $('signInBtn').disabled=false;
+  if(error){accountMessage(error.message,true);return}
+  await handleAuthSession(data.session);
+  accountMessage('¡Bienvenido a RosMusic!');
+}
+async function signOut(){
+  if(!supabaseClient)return;
+  const {error}=await supabaseClient.auth.signOut();
+  if(error){accountMessage(error.message,true);return}
+  currentUser=null;favorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]');
+  updateAccountUI();renderFavorites();renderTracks(tracks,'results');renderTracks(tracks,'results2');
+  accountMessage('Sesión cerrada.');
+}
+if(supabaseClient){
+  $('signUpBtn')?.addEventListener('click',createAccount);
+  $('signInBtn')?.addEventListener('click',signIn);
+  $('signOutBtn')?.addEventListener('click',signOut);
+  supabaseClient.auth.onAuthStateChange((_event,session)=>{handleAuthSession(session)});
+  supabaseClient.auth.getSession().then(({data})=>{if(data.session)handleAuthSession(data.session);else updateAccountUI()});
+}else{
+  accountMessage('No se pudo cargar el servicio de cuentas. Comprueba tu conexión.',true);
+}
+
 const fmt=s=>{s=Math.floor(s||0);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2300)}
 function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(name+'View').classList.remove('hidden');document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));renderFavorites();window.scrollTo({top:0,behavior:'smooth'})}
@@ -22,7 +117,21 @@ function renderTracks(list,target){
   el.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playList(list,Number(b.dataset.play)));
   el.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>toggleFavorite(list.find(t=>String(t.id)===b.dataset.fav)));
 }
-function toggleFavorite(t){if(!t)return;const exists=favorites.some(f=>f.id===t.id);favorites=exists?favorites.filter(f=>f.id!==t.id):[...favorites,t];localStorage.setItem('ros-favorites',JSON.stringify(favorites));renderTracks(tracks,'results');renderTracks(tracks,'results2');renderFavorites();toast(exists?'Quitada de favoritos':'Añadida a favoritos')}
+async function toggleFavorite(t){
+  if(!t)return;
+  const exists=favorites.some(f=>String(f.id)===String(t.id));
+  favorites=exists?favorites.filter(f=>String(f.id)!==String(t.id)):[...favorites,t];
+  saveFavorites();
+  renderTracks(tracks,'results');renderTracks(tracks,'results2');renderFavorites();
+  if(currentUser){
+    const request=exists
+      ?supabaseClient.from('favorites').delete().eq('user_id',currentUser.id).eq('track_id',String(t.id))
+      :supabaseClient.from('favorites').insert({user_id:currentUser.id,track_id:String(t.id),title:t.title||'Canción',artist:t.artist||'Artista',cover_url:t.cover||'',audio_url:t.audioUrl||''});
+    const {error}=await request;
+    if(error){console.error(error);toast('No se pudo sincronizar este favorito.');return}
+  }
+  toast(exists?'Quitada de favoritos':'Añadida a favoritos');
+}
 function renderFavorites(){renderTracks(favorites,'favoriteList');renderTracks(favorites.slice(0,4),'homeFavorites')}
 const JAMENDO_CLIENT_ID='ee51e90a';
 async function search(q,target,status){
