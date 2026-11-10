@@ -4,7 +4,7 @@ const audio=$('audio');let tracks=[],queue=[],index=-1,favorites=JSON.parse(loca
 const SUPABASE_URL='https://avcjvhrarhxsupdzcvjn.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_mbgKjSevp3xW4PndlaThaA__HCwLKkO';
 const supabaseClient=window.supabase?.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-let currentUser=null;
+let currentUser=null,playlists=[],activePlaylistTracks=[];
 function favoriteStorageKey(){return currentUser?'ros-favorites-'+currentUser.id:'ros-favorites'}
 function saveFavorites(){localStorage.setItem(favoriteStorageKey(),JSON.stringify(favorites))}
 function accountMessage(message,isError=false){const el=$('accountMessage');if(el){el.textContent=message;el.classList.toggle('error',isError)}}
@@ -46,11 +46,11 @@ async function handleAuthSession(session){
   currentUser=session?.user||null;
   updateAccountUI();
   if(currentUser){
-    try{await syncFavoritesForUser(currentUser);accountMessage('Tus favoritos están sincronizados en esta cuenta.');}
-    catch(error){console.error(error);accountMessage('La cuenta inició sesión, pero no se pudieron sincronizar los favoritos. Revisa la configuración de la tabla.',true);}
+    try{await syncFavoritesForUser(currentUser);await loadPlaylists();accountMessage('Tus favoritos y playlists están sincronizados en esta cuenta.');}
+    catch(error){console.error(error);accountMessage('La cuenta inició sesión, pero hubo un problema al sincronizar tus datos.',true);}
   }else{
     favorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]');
-    renderFavorites();
+    playlists=[];activePlaylistTracks=[];renderPlaylistOptions();renderPlaylistTracks();renderFavorites();
   }
   renderTracks(tracks,'results');renderTracks(tracks,'results2');
 }
@@ -108,10 +108,11 @@ function renderTracks(list,target){
   const el=$(target);
   if(!list.length){el.innerHTML='<div class="empty">No encontramos canciones para mostrar.</div>';return}
   el.classList.remove('empty');
-  el.innerHTML=list.map((t,i)=>`<div class="track"><img src="${escapeHtml(t.cover)}" alt="Portada de ${escapeHtml(t.album||t.title)}" loading="lazy"><div class="track-text" data-detail="${i}" role="button" tabindex="0"><b>${escapeHtml(t.title)}</b><small>${escapeHtml(t.artist)} · ${escapeHtml(t.album||'')}</small></div><button class="track-play" data-play="${i}" title="Reproducir" aria-label="Reproducir">▶</button><button data-fav="${t.id}" title="Guardar en favoritos" aria-label="Guardar en favoritos">${favorites.some(f=>f.id===t.id)?'♥':'♡'}</button></div>`).join('');
+  el.innerHTML=list.map((t,i)=>`<div class="track"><img src="${escapeHtml(t.cover)}" alt="Portada de ${escapeHtml(t.album||t.title)}" loading="lazy"><div class="track-text" data-detail="${i}" role="button" tabindex="0"><b>${escapeHtml(t.title)}</b><small>${escapeHtml(t.artist)} · ${escapeHtml(t.album||'')}</small></div><button class="track-play" data-play="${i}" title="Reproducir" aria-label="Reproducir">▶</button><button data-fav="${escapeHtml(t.id)}" title="Guardar en favoritos" aria-label="Guardar en favoritos">${favorites.some(f=>String(f.id)===String(t.id))?'♥':'♡'}</button><button data-add-playlist="${i}" title="Añadir a playlist" aria-label="Añadir a playlist">＋</button></div>`).join('');
   el.querySelectorAll('[data-detail]').forEach(b=>{const open=()=>openDetail(list[Number(b.dataset.detail)]);b.onclick=open;b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}}});
   el.querySelectorAll('[data-play]').forEach(b=>b.onclick=()=>playList(list,Number(b.dataset.play)));
   el.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>toggleFavorite(list.find(t=>String(t.id)===b.dataset.fav)));
+  el.querySelectorAll('[data-add-playlist]').forEach(b=>b.onclick=()=>addTrackToPlaylist(list[Number(b.dataset.addPlaylist)]));
 }
 async function toggleFavorite(t){
   if(!t)return;
@@ -129,6 +130,66 @@ async function toggleFavorite(t){
   toast(exists?'Quitada de favoritos':'Añadida a favoritos');
 }
 function renderFavorites(){renderTracks(favorites,'favoriteList');renderTracks(favorites.slice(0,4),'homeFavorites')}
+function renderPlaylistOptions(){
+  const select=$('playlistSelect');if(!select)return;
+  select.innerHTML=playlists.length?playlists.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join(''):'<option value="">Crea una playlist primero</option>';
+  if(activePlaylistId&&playlists.some(p=>p.id===activePlaylistId))select.value=activePlaylistId;
+  else activePlaylistId=playlists[0]?.id||null;
+}
+let activePlaylistId=null;
+async function loadPlaylists(){
+  if(!currentUser||!supabaseClient)return;
+  const {data,error}=await supabaseClient.from('playlists').select('id,name,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  if(error)throw error;
+  playlists=data||[];
+  renderPlaylistOptions();
+  await loadPlaylistTracks(activePlaylistId);
+}
+async function loadPlaylistTracks(playlistId){
+  activePlaylistId=playlistId||null;
+  renderPlaylistOptions();
+  if(!currentUser||!activePlaylistId){activePlaylistTracks=[];renderPlaylistTracks();return}
+  const {data,error}=await supabaseClient.from('playlist_tracks').select('id,track_id,title,artist,cover_url,audio_url').eq('playlist_id',activePlaylistId).order('created_at',{ascending:true});
+  if(error){console.error(error);toast('No se pudieron cargar las canciones de esta playlist.');return}
+  activePlaylistTracks=(data||[]).map(row=>({rowId:row.id,id:String(row.track_id),title:row.title,artist:row.artist||'Artista',album:'Playlist',cover:row.cover_url||'',audioUrl:row.audio_url||'',provider:'Jamendo'}));
+  renderPlaylistTracks();
+}
+function renderPlaylistTracks(){
+  const el=$('playlistTracks');if(!el)return;
+  if(!currentUser){el.innerHTML='<div class="empty">Inicia sesión para crear y guardar tus playlists.</div>';return}
+  if(!playlists.length){el.innerHTML='<div class="empty">Todavía no tienes playlists. Crea la primera arriba.</div>';return}
+  if(!activePlaylistTracks.length){el.innerHTML='<div class="empty">Esta playlist está vacía. Busca una canción y pulsa ＋ para añadirla.</div>';return}
+  el.innerHTML=activePlaylistTracks.map((t,i)=>`<div class="track"><img src="${escapeHtml(t.cover)}" alt="" loading="lazy"><div class="track-text"><b>${escapeHtml(t.title)}</b><small>${escapeHtml(t.artist)}</small></div><button class="track-play" data-play-playlist="${i}" title="Reproducir">▶</button><button data-remove-playlist-track="${escapeHtml(t.rowId)}" title="Quitar de playlist">×</button></div>`).join('');
+  el.querySelectorAll('[data-play-playlist]').forEach(b=>b.onclick=()=>playList(activePlaylistTracks,Number(b.dataset.playPlaylist)));
+  el.querySelectorAll('[data-remove-playlist-track]').forEach(b=>b.onclick=()=>removePlaylistTrack(b.dataset.removePlaylistTrack));
+}
+async function createPlaylist(event){
+  event?.preventDefault();
+  if(!currentUser){toast('Inicia sesión para crear playlists.');return}
+  const input=$('playlistName'),name=input.value.trim();
+  if(!name){input.focus();return}
+  const {data,error}=await supabaseClient.from('playlists').insert({user_id:currentUser.id,name}).select('id,name,created_at').single();
+  if(error){console.error(error);toast('No se pudo crear la playlist.');return}
+  input.value='';playlists=[data,...playlists];activePlaylistId=data.id;renderPlaylistOptions();await loadPlaylistTracks(data.id);toast('Playlist creada');
+}
+async function addTrackToPlaylist(track){
+  if(!currentUser){toast('Inicia sesión para guardar canciones en playlists.');return}
+  const playlistId=$('playlistSelect')?.value;
+  if(!playlistId){toast('Primero crea una playlist.');showView('playlists');return}
+  const {error}=await supabaseClient.from('playlist_tracks').insert({
+    playlist_id:playlistId,track_id:String(track.id),title:track.title||'Canción',
+    artist:track.artist||'Artista',cover_url:track.cover||'',audio_url:track.audioUrl||''
+  });
+  if(error){console.error(error);toast(error.code==='23505'?'Esa canción ya está en la playlist.':'No se pudo añadir la canción.');return}
+  activePlaylistId=playlistId;await loadPlaylistTracks(playlistId);toast('Añadida a tu playlist');
+}
+async function removePlaylistTrack(rowId){
+  const {error}=await supabaseClient.from('playlist_tracks').delete().eq('id',rowId);
+  if(error){console.error(error);toast('No se pudo quitar la canción.');return}
+  await loadPlaylistTracks(activePlaylistId);toast('Canción quitada de la playlist');
+}
+$('playlistCreateForm')?.addEventListener('submit',createPlaylist);
+$('playlistSelect')?.addEventListener('change',e=>loadPlaylistTracks(e.target.value));
 const JAMENDO_CLIENT_ID='ee51e90a';
 async function search(q,target,status){
   if(!q.trim())return;
@@ -187,5 +248,5 @@ $('buttonStyle').onchange=e=>{document.body.classList.remove('buttons-round','bu
 $('progressStyle').onchange=e=>{document.body.classList.remove('progress-pill','progress-line','progress-bold');document.body.classList.add('progress-'+e.target.value);localStorage.setItem('ros-progress-style',e.target.value)};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('installBtn').classList.remove('hidden')});
 $('installBtn').onclick=async()=>{if(!installPrompt){toast('Usa el menú del navegador y elige “Instalar aplicación” o “Añadir a pantalla de inicio”.');return}installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installBtn').classList.add('hidden')};
-if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',async()=>{try{const registration=await navigator.serviceWorker.register('./sw.js?v=rosmusic14',{updateViaCache:'none'});navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload(),{once:true});await registration.update();if(registration.waiting)registration.waiting.postMessage({type:'SKIP_WAITING'});}catch(error){console.warn('RosMusic: no se pudo actualizar el modo sin conexión',error);}});
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',async()=>{try{const registration=await navigator.serviceWorker.register('./sw.js?v=rosmusic16',{updateViaCache:'none'});navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload(),{once:true});await registration.update();if(registration.waiting)registration.waiting.postMessage({type:'SKIP_WAITING'});}catch(error){console.warn('RosMusic: no se pudo actualizar el modo sin conexión',error);}});
 renderFavorites();
