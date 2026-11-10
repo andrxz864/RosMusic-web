@@ -27,10 +27,10 @@ function renderFavorites(){renderTracks(favorites,'favoriteList');renderTracks(f
 const JAMENDO_CLIENT_ID='ee51e90a';
 async function search(q,target,status){
   if(!q.trim())return;
-  $(status).textContent='Buscando en el catálogo de Jamendo…';
+  $(status).textContent='Buscando canciones y artistas en Jamendo…';
   $(target).innerHTML='';
   try{
-    const params=new URLSearchParams({client_id:JAMENDO_CLIENT_ID,format:'json',limit:'30',search:q.trim(),boost:'popularity_total',groupby:'artist_id',type:'single albumtrack',include:'licenses',audioformat:'mp32',imagesize:'300'});
+    const params=new URLSearchParams({client_id:JAMENDO_CLIENT_ID,format:'json',limit:'50',search:q.trim(),boost:'popularity_total',type:'single albumtrack',include:'licenses',audioformat:'mp32',imagesize:'300'});
     const response=await fetch(`https://api.jamendo.com/v3.0/tracks/?${params.toString()}`);
     if(!response.ok)throw Error('Jamendo API');
     const data=await response.json();
@@ -41,7 +41,7 @@ async function search(q,target,status){
       audioUrl:x.audio||'',
       license:x.license_ccurl||'',provider:'Jamendo'
     }));
-    $(status).textContent=tracks.length?`Encontramos ${tracks.length} canciones de Jamendo. Pulsa ▶ para reproducirlas aquí.`:'No encontramos canciones con ese nombre.';
+    $(status).textContent=tracks.length?`Encontramos ${tracks.length} resultados de Jamendo. Pulsa ▶ para reproducir una pista disponible aquí.`:'No encontramos resultados en Jamendo. Prueba otro término o artista independiente.';
     renderTracks(tracks,target);
   }catch(error){
     console.error(error);
