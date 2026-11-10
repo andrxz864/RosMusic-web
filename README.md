@@ -6,7 +6,7 @@ Plataforma musical web independiente, adaptable a Android y escritorio. No utili
 - Interfaz responsive con navegación inferior táctil en Android.
 - Manifest y service worker para instalación como PWA desde un navegador compatible.
 - Caché básica de la interfaz para poder abrir la app shell sin conexión.
-- Búsqueda musical con la API pública de Deezer.
+- Búsqueda musical con iTunes Search API.
 - Reproducción de las muestras disponibles (normalmente fragmentos de 30 segundos).
 - Favoritos y preferencias guardados localmente.
 - Color de ambiente aproximado a partir de la portada de la canción actual.
