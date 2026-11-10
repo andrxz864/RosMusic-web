@@ -63,7 +63,7 @@ async function createAccount(){
   const {data,error}=await supabaseClient.auth.signUp({email,password});
   $('signUpBtn').disabled=false;
   if(error){accountMessage(error.message,true);return}
-  if(data.session){await handleAuthSession(data.session);accountMessage('¡Cuenta creada! Ya puedes usar RosMusic.');}
+  if(data.session){accountMessage('¡Cuenta creada! Ya puedes usar RosMusic.');}
   else{accountMessage('Cuenta creada. Revisa tu correo y confirma la dirección antes de iniciar sesión.');}
 }
 async function signIn(){
@@ -74,23 +74,19 @@ async function signIn(){
   const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
   $('signInBtn').disabled=false;
   if(error){accountMessage(error.message,true);return}
-  await handleAuthSession(data.session);
   accountMessage('¡Bienvenido a RosMusic!');
 }
 async function signOut(){
   if(!supabaseClient)return;
   const {error}=await supabaseClient.auth.signOut();
   if(error){accountMessage(error.message,true);return}
-  currentUser=null;favorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]');
-  updateAccountUI();renderFavorites();renderTracks(tracks,'results');renderTracks(tracks,'results2');
   accountMessage('Sesión cerrada.');
 }
 if(supabaseClient){
   $('signUpBtn')?.addEventListener('click',createAccount);
   $('signInBtn')?.addEventListener('click',signIn);
   $('signOutBtn')?.addEventListener('click',signOut);
-  supabaseClient.auth.onAuthStateChange((_event,session)=>{handleAuthSession(session)});
-  supabaseClient.auth.getSession().then(({data})=>{if(data.session)handleAuthSession(data.session);else updateAccountUI()});
+  supabaseClient.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>handleAuthSession(session),0)});
 }else{
   accountMessage('No se pudo cargar el servicio de cuentas. Comprueba tu conexión.',true);
 }
