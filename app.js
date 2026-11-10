@@ -2,7 +2,8 @@ const $=id=>document.getElementById(id);
 const audio=$('audio');let tracks=[],queue=[],index=-1,favorites=JSON.parse(localStorage.getItem('ros-favorites')||'[]'),dynamic=localStorage.getItem('ros-dynamic')!=='false',installPrompt=null,youtubeApiKey=localStorage.getItem('ros-youtube-key')||'';
 const fmt=s=>{s=Math.floor(s||0);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2300)}
-function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(name+'View').classList.remove('hidden');document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));if(name==='favorites')const keyInput=$('youtubeApiKey');if(keyInput){keyInput.value=youtubeApiKey;keyInput.onchange=()=>{youtubeApiKey=keyInput.value.trim();localStorage.setItem('ros-youtube-key',youtubeApiKey);toast(youtubeApiKey?'YouTube conectado en este dispositivo':'Clave de YouTube eliminada');};}\nrenderFavorites();window.scrollTo({top:0,behavior:'smooth'})}
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(name+'View').classList.remove('hidden');document.querySelectorAll('.nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));renderFavorites();window.scrollTo({top:0,behavior:'smooth'})}
+const keyInput=$('youtubeApiKey');if(keyInput){keyInput.value=youtubeApiKey;keyInput.addEventListener('change',()=>{youtubeApiKey=keyInput.value.trim();localStorage.setItem('ros-youtube-key',youtubeApiKey);toast(youtubeApiKey?'YouTube conectado en este dispositivo':'Clave de YouTube eliminada');});}
 document.querySelectorAll('.nav[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 $('settingsBtn').onclick=()=>showView('settings');
 $('heroSearch').onclick=()=>{showView('search');$('searchInput2').focus()};
@@ -65,6 +66,7 @@ $('trackDetail').onclick=e=>{if(e.target===$('trackDetail'))$('closeDetail').cli
 function playList(list,i){
   if(!list?.length)return;
   queue=list;index=i;const t=queue[index];
+  if(t.provider==='YouTube'){openDetail(t);return;}
   if(!t.audioUrl){toast('Esta canción no tiene una transmisión disponible.');return}
   audio.src=t.audioUrl;
   audio.play().then(()=>$('playBtn').textContent='Ⅱ').catch(()=>toast('No se pudo reproducir esta pista. Inténtalo de nuevo.'));
