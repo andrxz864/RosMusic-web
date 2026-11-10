@@ -58,7 +58,8 @@ function openDetail(t){
   $('detailCover').src=t.cover;$('detailTitle').textContent=t.title;$('detailArtist').textContent=t.artist;$('detailAlbum').textContent=t.album||'Sencillo';
   const license=$('detailLicense');
   if(license)license.textContent=t.license?'Licencia Creative Commons. Revisa sus condiciones antes de reutilizar esta pista.':'Consulta las condiciones de uso de esta pista en Jamendo.';
-  const yt=$('youtubeEmbed');if(yt){yt.classList.toggle('hidden',t.provider!=='YouTube');yt.src=t.provider==='YouTube'?`https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.videoId)}?autoplay=1&controls=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}`:'';}\n  $('trackDetail').classList.remove('hidden');document.body.style.overflow='hidden';queue=[t];index=0;
+  const yt=$('youtubeEmbed');if(yt){yt.classList.toggle('hidden',t.provider!=='YouTube');yt.src=t.provider==='YouTube'?`https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.videoId)}?autoplay=1&controls=1&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}`:'';}
+  $('trackDetail').classList.remove('hidden');document.body.style.overflow='hidden';queue=[t];index=0;
   $('nowTitle').textContent=t.title;$('nowArtist').textContent=t.artist;$('nowCover').src=t.cover;applyCoverColor(t.cover);
 }
 $('closeDetail').onclick=()=>{$('trackDetail').classList.add('hidden');const yt=$('youtubeEmbed');if(yt)yt.src='';document.body.style.overflow=''};
