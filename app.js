@@ -69,7 +69,7 @@ function playList(list,i){
   audio.play().then(()=>$('playBtn').textContent='Ⅱ').catch(()=>toast('No se pudo reproducir esta pista. Inténtalo de nuevo.'));
   $('nowTitle').textContent=t.title;$('nowArtist').textContent=t.artist;$('nowCover').src=t.cover;applyCoverColor(t.cover);
 }
-$('detailPlayBtn').onclick=()=>{if(queue.length)playList(queue,index)};
+
 $('playBtn').onclick=()=>{if(!audio.src){toast('Primero elige una canción');return}if(audio.paused){audio.play().then(()=>$('playBtn').textContent='Ⅱ').catch(()=>toast('No se pudo reproducir'))}else{audio.pause();$('playBtn').textContent='▶'}};
 $('nextBtn').onclick=()=>{if(queue.length)playList(queue,(index+1)%queue.length)};
 $('prevBtn').onclick=()=>{if(queue.length)playList(queue,(index-1+queue.length)%queue.length)};
